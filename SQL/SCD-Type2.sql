@@ -80,7 +80,7 @@ SELECT * FROM scdType2NEW
 
 -- COMMAND ----------
 
--- To generate a new row id
+-- Example ChangeRows table
 SELECT 
   null AS id, employee_id, first_name, last_name, gender, address_street, address_city, address_country, email, job_title, current_date AS start_date, null AS end_date
 FROM scdType2NEW
