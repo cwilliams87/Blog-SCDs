@@ -25,7 +25,7 @@
 # COMMAND ----------
 
 # Preview Dataset
-sql("SELECT * FROM EmployeeSample")
+display(sql("SELECT * FROM EmployeeSample"))
 
 # COMMAND ----------
 

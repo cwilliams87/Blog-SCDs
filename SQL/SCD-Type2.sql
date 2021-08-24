@@ -117,32 +117,7 @@ ON scdType2.id = scdChangeRows.id
 WHEN MATCHED THEN 
   UPDATE SET scdType2.end_date = current_date()
 -- if there is no match insert new row
-WHEN NOT MATCHED THEN INSERT 
-  (
-  employee_id,
-  first_name, 
-  last_name, 
-  gender, 
-  address_street, 
-  address_city, 
-  address_country, 
-  email, 
-  job_title,
-  start_date)
-  VALUES
-  ( 
-  scdChangeRows.employee_id,
-  scdChangeRows.first_name, 
-  scdChangeRows.last_name, 
-  scdChangeRows.gender, 
-  scdChangeRows.address_street, 
-  scdChangeRows.address_city, 
-  scdChangeRows.address_country, 
-  scdChangeRows.email, 
-  scdChangeRows.job_title,
-  scdChangeRows.start_date
-  )
-
+WHEN NOT MATCHED THEN INSERT *
 
 -- COMMAND ----------
 

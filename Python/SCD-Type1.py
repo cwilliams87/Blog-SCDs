@@ -49,8 +49,6 @@ display(scdType1DF.orderBy("employee_id"))
 
 # COMMAND ----------
 
-(2, 'Stu', 'Sand', 'Male', '83570 Fairview Way', 'Chicago', 'United States', 'ssand1@imdb.com', 'Solicitor')
-
 # Create dataset
 dataForDF = [
 (2, 'Stu', 'Sand', 'Male', '83570 Fairview Way', 'Chicago', 'United States', 'ssand1@imdb.com', 'Solicitor')
