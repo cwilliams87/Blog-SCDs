@@ -84,7 +84,7 @@ display(scd3Temp)
 # COMMAND ----------
 
 # Set autoMerge to True
-sql("SET spark.databricks.delta.schema.autoMerge.enabled=true")
+spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled ","true")
 
 # COMMAND ----------
 
