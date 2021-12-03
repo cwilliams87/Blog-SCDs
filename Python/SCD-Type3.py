@@ -30,7 +30,7 @@ spark.catalog.setCurrentDatabase("scd")
 # COMMAND ----------
 
 # Create dataframe from HIVE db scd
-scdType3DF = spark.table("scd.scdType2")
+scdType3DF = spark.table("scd.scdType3")
 
 # COMMAND ----------
 
