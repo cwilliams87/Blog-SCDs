@@ -33,7 +33,6 @@ ORDER BY employee_id
 
 -- MAGIC %md The employees **Maximo Moxon** (employee_id = 9), **Augueste Dimeloe** (employee_id = 10) and **Austina Wimbury** (employee_id = 11) have all relocated to an office in a different country. \
 -- MAGIC We want to amend the country values and create an accompanying column to display the previous ones as well as inserting any rows that may be new.
--- MAGIC </p>
 
 -- COMMAND ----------
 
