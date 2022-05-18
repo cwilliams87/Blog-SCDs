@@ -30,7 +30,7 @@ spark.catalog.setCurrentDatabase("scd")
 # COMMAND ----------
 
 # Create dataframe from HIVE db scd
-scdType3DF = spark.table("scd.scdType2")
+scdType3DF = spark.table("scd.scdType3")
 
 # COMMAND ----------
 
@@ -43,10 +43,8 @@ display(scdType3DF.orderBy("employee_id"))
 
 # COMMAND ----------
 
-# MAGIC %md <p>The employees <b>Maximo Moxon</b> (employee_id = 9), <b>Augueste Dimeloe</b> (employee_id = 10) and <b>Austina Wimbury</b> (employee_id = 11) have all relocated to an office in a different country.
-# MAGIC <br>
-# MAGIC <br>We want to amend the country values and create an accompanying column to display the previous ones.
-# MAGIC </p>
+# MAGIC %md The employees **Maximo Moxon** (employee_id = 9), **Augueste Dimeloe** (employee_id = 10) and **Austina Wimbury** (employee_id = 11) have all relocated to an office in a different country. \
+# MAGIC We want to amend the country values and create an accompanying column to display the previous ones as well as inserting any rows that may be new.
 
 # COMMAND ----------
 
@@ -54,7 +52,8 @@ display(scdType3DF.orderBy("employee_id"))
 dataForDF = [
 (9, 'Maximo', 'Moxon', 'Male', 'Canada'),
 (10, 'Augueste', 'Dimeloe', 'Female', 'France'),
-(11, 'Austina', 'Wimbury', 'Male', 'Germany')
+(11, 'Austina', 'Wimbury', 'Male', 'Germany'),
+(501, 'Steven', 'Smithson', 'Male', 'France')
 ]
 
 # Create Schema structure
@@ -84,7 +83,28 @@ display(scd3Temp)
 # COMMAND ----------
 
 # Set autoMerge to True
-sql("SET spark.databricks.delta.schema.autoMerge.enabled=true")
+spark.conf.set("spark.databricks.delta.schema.autoMerge.enabled", True)
+
+# COMMAND ----------
+
+# Create WIDGET to pass in column name variable and keep it dynamic 
+dbutils.widgets.text("changingColumn", "address_country")
+changingColumn = dbutils.widgets.get("changingColumn")
+
+# Create ChangeRows table (union of rows to amend and new rows to insert)
+changeRowsDF = sql(f"""
+  SELECT scdType3New.*, scdType3.{changingColumn} AS previous_{changingColumn} FROM scdType3New
+  INNER JOIN scdType3
+  ON scdType3.employee_id = scdType3New.employee_id
+  AND scdType3.{changingColumn} <> scdType3New.{changingColumn}
+  UNION
+  SELECT scdType3New.*, null AS previous_{changingColumn} FROM scdType3New
+  LEFT JOIN scdType3
+  ON scdType3.employee_id = scdType3New.employee_id
+  WHERE scdType3.employee_id IS NULL
+""")
+
+display(changeRowsDF)
 
 # COMMAND ----------
 
@@ -97,16 +117,11 @@ deltaTable = DeltaTable.forName(spark, "scdType3")
     .alias("original3")
     # Merge using the following conditions
     .merge( 
-      scd3Temp.alias("updates3"),
+      changeRowsDF.alias("updates3"),
       "original3.employee_id = updates3.employee_id"
     )
-    # When matched UPDATE ALL values
-    .whenMatchedUpdate(
-    set={
-      "original3.previous_country" : "original3.address_country",
-      "original3.address_country" : "updates3.address_country"
-    }
-    )
+    # When matched UPDATE these values
+    .whenMatchedUpdateAll()
     # When not matched INSERT ALL rows
     .whenNotMatchedInsertAll()
     # Execute
@@ -121,7 +136,9 @@ deltaTable = DeltaTable.forName(spark, "scdType3")
 # COMMAND ----------
 
 # Check table for changed rows
-display(sql("SELECT * FROM scdType3 WHERE employee_id >= 9"))
+display(
+  sql("SELECT * FROM scdType3 WHERE employee_id IN (9,10,11,501)")
+)
 
 # COMMAND ----------
 

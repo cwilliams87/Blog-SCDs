@@ -22,7 +22,7 @@ USE scd
 -- COMMAND ----------
 
 -- Select employees table (ordered by id column)
-SELECT * FROM scd.scdType3
+SELECT * FROM scdType3
 ORDER BY employee_id
 
 -- COMMAND ----------
@@ -31,10 +31,8 @@ ORDER BY employee_id
 
 -- COMMAND ----------
 
--- MAGIC %md <p>The employees <b>Maximo Moxon</b> (employee_id = 9), <b>Augueste Dimeloe</b> (employee_id = 10) and <b>Austina Wimbury</b> (employee_id = 11) have all relocated to an office in a different country.
--- MAGIC <br>
--- MAGIC <br>We want to amend the country values and create an accompanying column to display the previous ones.
--- MAGIC </p>
+-- MAGIC %md The employees **Maximo Moxon** (employee_id = 9), **Augueste Dimeloe** (employee_id = 10) and **Austina Wimbury** (employee_id = 11) have all relocated to an office in a different country. \
+-- MAGIC We want to amend the country values and create an accompanying column to display the previous ones as well as inserting any rows that may be new.
 
 -- COMMAND ----------
 
@@ -51,7 +49,8 @@ col5 AS address_country
 FROM VALUES 
 (9, 'Maximo', 'Moxon', 'Male', 'Canada'),
 (10, 'Augueste', 'Dimeloe', 'Female', 'France'),
-(11, 'Austina', 'Wimbury', 'Male', 'Germany');
+(11, 'Austina', 'Wimbury', 'Male', 'Germany'),
+(501, 'Steven', 'Smithson', 'Male', 'France');
 
 -- Preview results
 SELECT * FROM scdType3NEW
@@ -72,18 +71,37 @@ SET spark.databricks.delta.schema.autoMerge.enabled=true;
 
 -- COMMAND ----------
 
+-- Create WIDGET to pass in column name variable and keep it dynamic
+CREATE WIDGET TEXT changingColumn DEFAULT '';
+SET $changingColumn = 'address_country';
+
+-- Create ChangeRows table (union of rows to amend and new rows to insert)
+CREATE OR REPLACE TEMP VIEW scd3ChangeRows AS
+SELECT scdType3New.*, scdType3.$changingColumn AS previous_$changingColumn FROM scdType3New
+INNER JOIN scdType3
+ON scdType3.employee_id = scdType3New.employee_id
+AND scdType3.$changingColumn <> scdType3New.$changingColumn
+UNION
+-- Union join any new rows to be inserted
+SELECT scdType3New.*, null AS previous_$changingColumn FROM scdType3New
+LEFT JOIN scdType3
+ON scdType3.employee_id = scdType3New.employee_id
+WHERE scdType3.employee_id IS NULL;
+
+-- COMMAND ----------
+
 -- Merge scdType3NEW dataset into existing
 MERGE INTO scdType3
-USING scdType3NEW
+USING scd3ChangeRows
 
 -- based on the following column(s)
-ON scdType3.employee_id = scdType3NEW.employee_id
+ON scdType3.employee_id = scd3ChangeRows.employee_id
 
 -- if there is a match do this...
 WHEN MATCHED THEN 
-  UPDATE SET scdType3.previous_country = scdType3.address_country, address_country = scdType3NEW.address_country
--- if there is no match insert new row
-WHEN NOT MATCHED THEN INSERT *
+  UPDATE SET *
+WHEN NOT MATCHED THEN 
+  INSERT *
 
 -- COMMAND ----------
 
@@ -94,7 +112,7 @@ WHEN NOT MATCHED THEN INSERT *
 
 -- Check table for changed rows
 SELECT * FROM scdType3
-WHERE employee_id >= 9
+WHERE employee_id IN (9,10,11,501)
 
 -- COMMAND ----------
 
@@ -104,4 +122,5 @@ DESCRIBE HISTORY scdType3
 -- COMMAND ----------
 
 -- Clean up
-DROP VIEW IF EXISTS scdType3NEW
+DROP VIEW IF EXISTS scdType3NEW;
+DROP VIEW IF EXISTS scd3ChangeRows;
